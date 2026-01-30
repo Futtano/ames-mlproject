@@ -1,6 +1,8 @@
 numpy
 scikit-learn
+category-encoders
 pandas
 matplotlib
 seaborn
--e .
+mlxtend
+# -e .
