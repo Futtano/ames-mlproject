@@ -5,4 +5,5 @@ pandas
 matplotlib
 seaborn
 mlxtend
+xgboost
 # -e .
