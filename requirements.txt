@@ -6,4 +6,5 @@ matplotlib
 seaborn
 mlxtend
 xgboost
+dill
 # -e .

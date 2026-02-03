@@ -1,44 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-# Check for wrong values inside the dataset
-def validate_numerical_features(df, allowed_values):
-    """Validate all rows against allowed numerical bounds for numerical features"""
-    violations = {}
-
-    for col, check_func in allowed_values.items():
-        if col in df.columns:
-            invalid_mask = ~(check_func(df[col]) | df[col].isna()) # Do not flag NaN as invalid
-            
-            if invalid_mask.any():
-                if invalid_mask.any():
-                    violations[col] = {
-                        'count': invalid_mask.sum(),
-                        'invalid_values': df.loc[invalid_mask, col].unique().tolist()
-                    }
-        # else:
-            # raise KeyError(f'specified column {col} of "allowed_values" is not present in df.columns')
-        
-    return violations
-
-def validate_categorical_features(df, allowed_values):
-    """Validate all rows against allowed categories for categorical features"""
-    violations = {}
-    
-    for col, valid_vals in allowed_values.items():
-        if col in df.columns:
-            invalid_mask = ~(df[col].isin(valid_vals) | df[col].isna())
-            if invalid_mask.any():
-                violations[col] = {
-                    'count': invalid_mask.sum(),
-                    'invalid_values': df.loc[invalid_mask, col].unique().tolist()
-                }
-        # else:
-            # raise KeyError(f'specified column {col} of "allowed_values" is not present in df.columns')
-
-    
-    return violations
-
 name_map = {
     'MS SubClass':  'MSSubClass',
     'MS Zoning': 'MSZoning',
@@ -271,6 +233,44 @@ int_feat = ['YearBuilt', 'YearRemod/Add', 'BsmtFullBath', 'BsmtHalfBath', 'FullB
 ############################################################################################################################
 ###################################################### Functions ###########################################################
 ############################################################################################################################
+
+# Check for wrong values inside the dataset
+def validate_numerical_features(df, allowed_values):
+    """Validate all rows against allowed numerical bounds for numerical features"""
+    violations = {}
+
+    for col, check_func in allowed_values.items():
+        if col in df.columns:
+            invalid_mask = ~(check_func(df[col]) | df[col].isna()) # Do not flag NaN as invalid
+            
+            if invalid_mask.any():
+                if invalid_mask.any():
+                    violations[col] = {
+                        'count': invalid_mask.sum(),
+                        'invalid_values': df.loc[invalid_mask, col].unique().tolist()
+                    }
+        # else:
+            # raise KeyError(f'specified column {col} of "allowed_values" is not present in df.columns')
+        
+    return violations
+
+def validate_categorical_features(df, allowed_values):
+    """Validate all rows against allowed categories for categorical features"""
+    violations = {}
+    
+    for col, valid_vals in allowed_values.items():
+        if col in df.columns:
+            invalid_mask = ~(df[col].isin(valid_vals) | df[col].isna())
+            if invalid_mask.any():
+                violations[col] = {
+                    'count': invalid_mask.sum(),
+                    'invalid_values': df.loc[invalid_mask, col].unique().tolist()
+                }
+        # else:
+            # raise KeyError(f'specified column {col} of "allowed_values" is not present in df.columns')
+
+    
+    return violations
 
 def residual_plot(y_train,y_train_pred,
                   y_test, y_test_pred, title):
