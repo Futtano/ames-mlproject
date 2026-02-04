@@ -1,6 +1,7 @@
 import sys
 import os
 import dill
+import numpy as np
 from scipy.stats import uniform, randint
 from src.exception import CustomException
 from src.logger import logging
@@ -293,3 +294,27 @@ def save_object(file_path, obj):
         logging.info(f'{str(obj)} written to {file_path}.')
     except Exception as e:
         raise CustomException(e, sys)
+    
+def load_object(file_path):
+    logging.info(f'Loading object from file {file_path}.' )
+    try:
+        with open(file_path, 'rb') as f:
+            obj = dill.load(f)
+        logging.info(f'{str(obj)} successfully loaded from {file_path}.')
+    except Exception as e:
+        raise CustomException(e, sys)
+    
+    return obj
+    
+def is_valid_num_feat(feat_name, value):
+    """Validate against allowed numerical bounds for numerical features"""
+    return feat_name in num and numerical_invariants[feat_name](np.float64(value))
+
+def is_valid_cat_feat(feat_name, value):
+    """Validate against allowed categories for categorical features"""
+    if feat_name == 'MSSubClass' or feat_name == 'OverallQual':
+        value = np.float64(value)
+    return feat_name in cat_ord + cat_nom and value in categorical_invariants[feat_name]
+
+if __name__ == '__main__':
+    print(is_valid_cat_feat('Neighborhood', 'SWISU'))

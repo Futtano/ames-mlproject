@@ -7,4 +7,5 @@ seaborn
 mlxtend
 xgboost
 dill
+flask
 # -e .
