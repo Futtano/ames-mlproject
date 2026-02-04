@@ -1,8 +1,10 @@
 import sys
 import os
+import dill
+from scipy.stats import uniform, randint
 from src.exception import CustomException
 from src.logger import logging
-import dill
+
 name_map = {
     'MS SubClass':  'MSSubClass',
     'MS Zoning': 'MSZoning',
@@ -246,6 +248,32 @@ enc_ord_categories = [
     ('Po', 'Fa', 'TA', 'Gd', 'Ex'),
     ('Po', 'Fa', 'TA', 'Gd', 'Ex'),
 ]
+
+xgb_param_distributions = {
+    "n_estimators": [100, 200, 500, 1000],                    # number of trees
+    "max_depth": [3, 4, 5, 6, 7, 8, 10],                      # tree depth
+    "learning_rate": [0.01, 0.02, 0.05, 0.1, 0.2, 0.3],      # step size shrinkage
+    "subsample": [0.6, 0.7, 0.8, 0.9, 1.0],                  # fraction of samples per tree
+    "colsample_bytree": [0.6, 0.7, 0.8, 0.9, 1.0],          # fraction of features per tree
+    "min_child_weight": [1, 3, 5, 7, 10],                    # minimum sum of instance weight in a child
+    "reg_alpha": [0, 0.01, 0.1, 1, 5, 10, 50],              # L1 regularization
+    "reg_lambda": [0, 0.01, 0.1, 1, 5, 10, 50],             # L2 regularization
+    "gamma": [0, 0.1, 0.5, 1, 2, 5],                         # minimum loss reduction to split
+}
+
+dtree_param_distributions = {
+    "max_depth": randint(3, 20),                    # None is also possible, but RandomizedSearchCV prefers finite ranges
+    "min_samples_split": randint(2, 20),           # minimum samples to split
+    "min_samples_leaf": randint(1, 10),            # minimum samples in a leaf
+    "max_features": ["sqrt", "log2", None],      # number of features to consider at each split
+    "max_leaf_nodes": randint(10, 100),            # limit total leaves (optional)
+}
+
+elasticnet_param_distributions = {
+    "alpha": uniform(1e-4, 10),              # regularization strength; e.g. roughly [1e-4, 10.01e-4)
+    "l1_ratio": uniform(0.1, 0.8),          # mix between L1 and L2; e.g. roughly [0.1, 0.9)
+    "max_iter": [1000, 2000, 5000],         # increase if convergence warnings appear
+}
 
 ############################################################################################################################
 ###################################################### Functions ###########################################################
