@@ -1,9 +1,9 @@
 # Ames Housing Price Predictor
 
-[![CI/CD Pipeline](https://github.com/Futtano/ames-mlproject/actions/workflows/main.yml/badge.svg)](https://github.com/Futtano/ames-mlproject/actions)
-[![Python Version](https://img.shields.io/badge/python-3.11+-blue.svg)](https://python.org)
-[![Code Quality](https://img.shields.io/badge/lint-Ruff-orange.svg)](https://github.com/astral-sh/ruff)
-[![Test Coverage](https://img.shields.io/badge/coverage-86%25-green.svg)](htmlcov/index.html)
+[![CI/CD Pipeline](https://github.com/Futtano/ames-mlproject/actions/workflows/pipeline.yml/badge.svg)](https://github.com/Futtano/ames-mlproject/actions)
+[![codecov](https://codecov.io/gh/Futtano/ames-mlproject/graph/badge.svg?token=RK0TKRDCPB)](https://codecov.io/gh/Futtano/ames-mlproject)
+[![Python Version](https://img.shields.io/github/python-version/Futtano/ames-mlproject)](https://github.com/Futtano/ames-mlproject/blob/main/pyproject.toml)
+[![Linting](https://img.shields.io/badge/lint-Ruff-orange.svg)](https://github.com/astral-sh/ruff)
 
 An end-to-end, production-grade Machine Learning pipeline that predicts house sale prices using the comprehensive Ames Housing dataset. This project serves as a blueprint for professional ML engineering, emphasizing **clean code**, **automated testing**, and **scalable architecture**.
 
