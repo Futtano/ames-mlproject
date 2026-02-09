@@ -214,7 +214,6 @@ artifacts/
 *.pth
 *.onnx
 mlruns/
-models/
 logs/
 
 # Data files (keep directory structure but not actual data)
