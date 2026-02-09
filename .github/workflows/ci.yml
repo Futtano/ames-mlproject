@@ -24,8 +24,8 @@ jobs:
         with:
           python-version-file: "pyproject.toml"
 
-      - name: Install project and dev dependencies
-        run: uv pip install .[dev]
+      - name: Install dependencies
+        run: uv sync --all-extras --dev
 
       - name: Run pre-commit hooks (Linting & Formatting)
         run: uv run pre-commit run --all-files
@@ -33,11 +33,9 @@ jobs:
       - name: Run tests with coverage
         run: uv run pytest tests/ -v --cov=ames_mlproject --cov-report=xml
 
-      - name: Upload coverage results
-        uses: codecov/codecov-action@v4
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v5
         with:
-          file: ./coverage.xml
-          fail_ci_if_error: false
           token: ${{ secrets.CODECOV_TOKEN }}
 
   docker-verification:
@@ -50,7 +48,7 @@ jobs:
       - name: Build Docker image
         run: docker build -t ames-ml-api:${{ github.sha }} .
 
-      - name: Verify API Health (Optional Integration)
+      - name: Verify API Health
         run: |
           docker run -d -p 5000:5000 --name api-check ames-ml-api:${{ github.sha }}
           sleep 5
