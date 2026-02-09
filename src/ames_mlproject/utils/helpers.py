@@ -1,6 +1,20 @@
-import matplotlib.pyplot as plt
-import numpy as np
+"""
+Utility functions and shared constants for the Ames ML project.
+Includes feature mappings, data validation invariants, and artifact management.
+"""
 
+import os
+import sys
+from typing import Any
+
+import dill  # nosec
+import numpy as np
+from scipy.stats import randint, uniform
+
+from ames_mlproject.core.exceptions import CustomException
+from ames_mlproject.core.logging import logger
+
+# Mapping from raw dataset column names to pythonic SnakeCase
 name_map = {
     "MS SubClass": "MSSubClass",
     "MS Zoning": "MSZoning",
@@ -73,7 +87,8 @@ name_map = {
     "Yr Sold": "YrSold",
 }
 
-categorical_invariants = {
+# Categories allowed for each categorical feature
+categorical_invariants: dict[str, list[Any]] = {
     "MSSubClass": [20, 30, 40, 45, 50, 60, 70, 75, 80, 85, 90, 120, 150, 160, 180, 190],
     "MSZoning": ["A", "C", "FV", "I", "RH", "RL", "RP", "RM"],
     "Street": ["Grvl", "Pave"],
@@ -187,6 +202,7 @@ categorical_invariants = {
     "SaleCondition": ["Normal", "Abnorml", "AdjLand", "Alloca", "Family", "Partial"],
 }
 
+# Lambda-based validation rules for numerical feature bounds
 numerical_invariants = {
     "LotFrontage": lambda x: x >= 0,
     "LotArea": lambda x: x >= 0,
@@ -224,6 +240,7 @@ numerical_invariants = {
     "SalePrice": lambda x: x >= 0,
 }
 
+# Corrective mappings for inconsistent naming/values in raw data
 mszoning_correct_values = {
     "C (all)": "C",
     "I (all)": "I",
@@ -243,6 +260,7 @@ exterior2d_correct_values = {
 
 saletype_correct_values = {"WD ": "WD"}
 
+# Lists defining subsets of features for specific processing
 ordered_categories = [
     "Utilities",
     "LandSlope",
@@ -292,6 +310,7 @@ float_feat = [
     "MiscVal",
     "SalePrice",
 ]
+
 int_feat = [
     "YearBuilt",
     "YearRemod/Add",
@@ -309,84 +328,143 @@ int_feat = [
     "YrSold",
 ]
 
-############################################################################################################################
-###################################################### Functions ###########################################################
-############################################################################################################################
+# Final subset of features used for training and prediction
+feat_subset = [
+    "OverallQual",
+    "GrLivArea",
+    "BsmtQual",
+    "Neighborhood",
+    "KitchenQual",
+    "BsmtFinSF1",
+    "TotalBsmtSF",
+    "1stFlrSF",
+    "GarageArea",
+    "FullBath",
+    "MasVnrArea",
+    "ExterQual",
+    "YearRemod/Add",
+    "MSSubClass",
+    "YearBuilt",
+]
+
+# Computed subsets based on feature types
+num = [f for f in feat_subset if f in (int_feat + float_feat)]
+cat_ord = [f for f in feat_subset if f in ordered_categories]
+cat_nom = [f for f in feat_subset if f not in (num + cat_ord)]
+
+# Specific category order for Ordinal Encoding
+enc_ord_categories = [
+    (1, 2, 3, 4, 5, 6, 7, 8, 9, 10),  # OverallQual
+    ("NA", "Po", "Fa", "TA", "Gd", "Ex"),  # BsmtQual
+    ("Po", "Fa", "TA", "Gd", "Ex"),  # KitchenQual
+    ("Po", "Fa", "TA", "Gd", "Ex"),  # ExterQual
+]
 
 
-# Check for wrong values inside the dataset
-def validate_numerical_features(df, allowed_values):
-    """Validate all rows against allowed numerical bounds for numerical features"""
-    violations = {}
+def parse_hyperparameters(params: dict[str, Any]) -> dict[str, Any]:
+    """Parse hyperparameter search space from config dict.
 
-    for col, check_func in allowed_values.items():
-        if col in df.columns:
-            invalid_mask = ~(check_func(df[col]) | df[col].isna())  # Do not flag NaN as invalid
+    Converts distribution definitions (dist, args) into scipy.stats objects
+    while maintaining regular lists as they are.
 
-            if invalid_mask.any():
-                if invalid_mask.any():
-                    violations[col] = {
-                        "count": invalid_mask.sum(),
-                        "invalid_values": df.loc[invalid_mask, col].unique().tolist(),
-                    }
-        # else:
-        # raise KeyError(f'specified column {col} of "allowed_values" is not present in df.columns')
+    Args:
+        params (Dict[str, Any]): Parameters from configuration.
 
-    return violations
-
-
-def validate_categorical_features(df, allowed_values):
-    """Validate all rows against allowed categories for categorical features"""
-    violations = {}
-
-    for col, valid_vals in allowed_values.items():
-        if col in df.columns:
-            invalid_mask = ~(df[col].isin(valid_vals) | df[col].isna())
-            if invalid_mask.any():
-                violations[col] = {
-                    "count": invalid_mask.sum(),
-                    "invalid_values": df.loc[invalid_mask, col].unique().tolist(),
-                }
-        # else:
-        # raise KeyError(f'specified column {col} of "allowed_values" is not present in df.columns')
-
-    return violations
+    Returns:
+        Dict[str, Any]: Parsed parameters ready for RandomizedSearchCV.
+    """
+    parsed = {}
+    for key, value in params.items():
+        if isinstance(value, dict) and "dist" in value:
+            dist_type = value["dist"]
+            args = value.get("args", [])
+            if dist_type == "uniform":
+                parsed[key] = uniform(*args)
+            elif dist_type == "randint":
+                parsed[key] = randint(*args)
+            else:
+                logger.warning(f"Unknown distribution type: {dist_type}. Using as is.")
+                parsed[key] = value
+        else:
+            parsed[key] = value
+    return parsed
 
 
-def residual_plot(y_train, y_train_pred, y_test, y_test_pred, title):
-    x_max = np.max([np.max(y_train_pred), np.max(y_test_pred)])
-    x_min = np.min([np.min(y_train_pred), np.min(y_test_pred)])
+def save_object(file_path: str, obj: Any) -> None:
+    """Serialize and save an object to a file using dill.
 
-    fig, (ax1, ax2) = plt.subplots(
-        1,
-        2,
-        figsize=(7, 3),
-        sharey=True,
-    )
+    Args:
+        file_path (str): Target path for the saved object.
+        obj (Any): Object to serialize.
 
-    ax1.scatter(
-        y_test_pred,
-        y_test_pred - y_test,
-        c="limegreen",
-        marker="s",
-        edgecolor="white",
-        label=f"{title} - Test data",
-    )
-    ax2.scatter(
-        y_train_pred,
-        y_train_pred - y_train,
-        c="steelblue",
-        marker="o",
-        edgecolor="white",
-        label=f"{title} - Train data",
-    )
+    Raises:
+        CustomException: If an error occurs during directory creation or serialization.
+    """
+    logger.info(f"Saving object to {file_path}")
+    try:
+        dir_path = os.path.dirname(file_path)
+        os.makedirs(dir_path, exist_ok=True)
 
-    ax1.set_ylabel("Residuals")
+        with open(file_path, "wb") as f:
+            dill.dump(obj, f)
 
-    for ax in (ax1, ax2):
-        ax.set_xlabel("Predicted values")
-        ax.legend(loc="upper left")
-        ax.hlines(y=0, xmin=x_min - 100, xmax=x_max + 100, color="black", lw=2)
+        logger.info("Object saved successfully.")
+    except Exception as e:
+        raise CustomException(e, sys) from e
 
-    plt.tight_layout()
-    plt.show()
+
+def load_object(file_path: str) -> Any:
+    """Load and deserialize an object from a file using dill.
+
+    Args:
+        file_path (str): Path to the serialized object.
+
+    Returns:
+        Any: The deserialized object.
+
+    Raises:
+        CustomException: If an error occurs during loading.
+    """
+    logger.info(f"Loading object from {file_path}")
+    try:
+        with open(file_path, "rb") as f:
+            obj = dill.load(f)  # nosec
+        logger.info("Object loaded successfully.")
+        return obj
+    except Exception as e:
+        raise CustomException(e, sys) from e
+
+
+def is_valid_num_feat(feat_name: str, value: Any) -> bool:
+    """Validate a numerical feature against its defined invariants.
+
+    Args:
+        feat_name (str): Name of the feature.
+        value (Any): Value to validate.
+
+    Returns:
+        bool: True if valid, False otherwise.
+    """
+    return feat_name in num and numerical_invariants[feat_name](np.float64(value))
+
+
+def is_valid_cat_feat(feat_name: str, value: Any) -> bool:
+    """Validate a categorical feature against its allowed values.
+
+    Args:
+        feat_name (str): Name of the feature.
+        value (Any): Value to validate.
+
+    Returns:
+        bool: True if valid, False otherwise.
+    """
+    if feat_name in ["MSSubClass", "OverallQual"]:
+        try:
+            value = np.float64(value)
+        except (ValueError, TypeError):
+            return False
+    return feat_name in cat_ord + cat_nom and value in categorical_invariants[feat_name]
+
+
+if __name__ == "__main__":
+    print(f"Validation test: {is_valid_cat_feat('Neighborhood', 'SWISU')}")

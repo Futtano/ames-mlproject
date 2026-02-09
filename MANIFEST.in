@@ -1,0 +1,11 @@
+include README.md
+include LICENSE
+include requirements.txt
+include pyproject.toml
+recursive-include config *.yaml
+recursive-include src/ames_mlproject/api/templates *.html
+recursive-exclude tests *
+recursive-exclude notebooks *
+recursive-exclude .github *
+global-exclude *.pyc
+global-exclude __pycache__

@@ -1,0 +1,13 @@
+.git
+.venv
+__pycache__
+*.pyc
+.log
+artifacts/*.csv
+htmlcov
+tests
+notebooks
+.pre-commit-config.yaml
+.coverage
+.mypy_cache
+.pytest_cache

@@ -1,0 +1,58 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  quality-assurance:
+    name: Quality Assurance (Lint & Test)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version-file: "pyproject.toml"
+
+      - name: Install project and dev dependencies
+        run: uv pip install .[dev]
+
+      - name: Run pre-commit hooks (Linting & Formatting)
+        run: uv run pre-commit run --all-files
+
+      - name: Run tests with coverage
+        run: uv run pytest tests/ -v --cov=ames_mlproject --cov-report=xml
+
+      - name: Upload coverage results
+        uses: codecov/codecov-action@v4
+        with:
+          file: ./coverage.xml
+          fail_ci_if_error: false
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+  docker-verification:
+    name: Docker Build Verification
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: docker build -t ames-ml-api:${{ github.sha }} .
+
+      - name: Verify API Health (Optional Integration)
+        run: |
+          docker run -d -p 5000:5000 --name api-check ames-ml-api:${{ github.sha }}
+          sleep 5
+          curl -f http://localhost:5000/health || (docker logs api-check && exit 1)
+          docker rm -f api-check

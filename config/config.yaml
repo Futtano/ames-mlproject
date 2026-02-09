@@ -1,0 +1,131 @@
+# Ames ML Project Configuration
+# This file contains all configurable parameters for the project
+
+# General settings
+general:
+  random_state: 42
+  environment: "development"  # development, staging, production
+
+# Data configuration
+data:
+  dataset_path: "dataset/AmesHousing.txt"
+  separator: "\t"
+  test_size: 0.3
+  shuffle: true
+
+  # Feature configuration
+  target_feature: "SalePrice"
+
+  feature_subset:
+    - "OverallQual"
+    - "GrLivArea"
+    - "BsmtQual"
+    - "Neighborhood"
+    - "KitchenQual"
+    - "BsmtFinSF1"
+    - "TotalBsmtSF"
+    - "1stFlrSF"
+    - "GarageArea"
+    - "FullBath"
+    - "MasVnrArea"
+    - "ExterQual"
+    - "YearRemod/Add"
+    - "MSSubClass"
+    - "YearBuilt"
+
+# Artifacts configuration
+artifacts:
+  base_path: "artifacts"
+  train_data: "train.csv"
+  test_data: "test.csv"
+  clean_data: "data.csv"
+  preprocessor: "preprocessor.pkl"
+  model: "model.pkl"
+
+# Logging configuration
+logging:
+  log_dir: ".log"
+  format: "[ %(asctime)s ] %(lineno)d %(name)s - %(levelname)s - %(message)s"
+  level: "INFO"  # DEBUG, INFO, WARNING, ERROR, CRITICAL
+
+# Preprocessing configuration
+preprocessing:
+  imputation:
+    numerical_strategy: "median"
+    categorical_strategy: "most_frequent"
+
+  encoding:
+    target_encoder_cv: 5
+    target_encoder_smooth: "auto"
+
+# Model training configuration
+model_training:
+  scoring: "r2"
+  cv_folds: 5
+  random_search_iter: 20
+  random_search_cv: 10
+  n_jobs: -1
+
+  # Model selection (nested CV)
+  nested_cv_outer_folds: 5
+  nested_cv_inner_folds: 2
+
+  # Models to evaluate during selection
+  # each entry: { name: "ModelName", module: "sklearn.path", class: "ClassName", params: { ... } }
+  models:
+    - name: "ElasticNet"
+      module: "sklearn.linear_model"
+      class: "ElasticNet"
+      params:
+        alpha:
+          dist: "uniform"
+          args: [0.0001, 10]
+        l1_ratio:
+          dist: "uniform"
+          args: [0.1, 0.7]
+        max_iter: [1000, 2000, 5000]
+
+    - name: "DecisionTree"
+      module: "sklearn.tree"
+      class: "DecisionTreeRegressor"
+      params:
+        max_depth:
+          dist: "randint"
+          args: [3, 20]
+        min_samples_split:
+          dist: "randint"
+          args: [2, 20]
+        min_samples_leaf:
+          dist: "randint"
+          args: [1, 10]
+        max_features: ["sqrt", "log2", null]
+        max_leaf_nodes:
+          dist: "randint"
+          args: [10, 100]
+
+    - name: "XGBoost"
+      module: "xgboost"
+      class: "XGBRegressor"
+      params:
+        n_estimators: [100, 200, 500, 1000]
+        max_depth: [3, 4, 5, 6, 7, 8, 10]
+        learning_rate: [0.01, 0.02, 0.05, 0.1, 0.2, 0.3]
+        subsample: [0.6, 0.7, 0.8, 0.9, 1.0]
+        colsample_bytree: [0.6, 0.7, 0.8, 0.9, 1.0]
+        min_child_weight: [1, 3, 5, 7, 10]
+        reg_alpha: [0, 0.01, 0.1, 1, 5, 10, 50]
+        reg_lambda: [0, 0.01, 0.1, 1, 5, 10, 50]
+        gamma: [0, 0.1, 0.5, 1, 2, 5]
+
+# API configuration
+api:
+  host: "0.0.0.0"
+  port: 5000
+  debug: true  # Set to false in production
+  cors_origins:
+    - "*"
+
+# Data validation thresholds
+validation:
+  outlier_threshold:
+    GrLivArea: 4000
