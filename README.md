@@ -17,6 +17,8 @@ The goal is to provide a robust system that can:
 3.  **Deploy**: Serve predictions through a high-performance **FastAPI** backend with a modern web interface.
 4.  **Monitor**: Maintain reliability through centralized, rotating logs and detailed exception handling.
 
+You can try the model here: https://ames-mlproject.onrender.com/
+
 ---
 
 ## Key Features
